@@ -1,0 +1,31 @@
+最后找到cc拦截的代码，其实很简单：
+
+--获得真实IP。
+function getClientIp()
+    IP  = ngx.var.remote_addr
+    if IP == nil then
+        IP  = "unknown"
+    end
+    return IP
+end
+--"100/60"
+--设置cc攻击频率，单位为秒.
+local uri = ngx.var.uri
+local cc_count = 100
+local cc_seconds = 60
+local token = getClientIp() .. uri
+local limit = ngx.shared.limit
+local req, _ = limit:get(token)
+if req then
+    if req > cc_count then
+        ngx.exit(503)
+        return true
+    else
+        limit:incr(token, 1)
+    end
+else
+    limit:set(token, 1, cc_seconds)
+end
+
+把这个代码放到一个lua文件里面就可以增加防cc攻击模块了。 
+可以防些简单的攻击。
